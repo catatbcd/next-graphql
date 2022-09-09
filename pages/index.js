@@ -3,33 +3,36 @@ import Head from 'next/head'
 import { gql } from "@apollo/client";
 import client from "../apollo-client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css'
 import classes from '../styles/form.module.css'
-export default function Home(props) {
+import useForm from "../utility/useForm";
+export default function Home({users}) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
+ /* const refreshData = () => {
+    router.replace(router.asPath);
+  }*/
   const refreshData = () => {
     router.replace(router.asPath);
-  }
-  console.log(props.users);
-  const [data, setData] = useState({
+    setIsRefreshing(true);
+  };
+  useEffect(() => {
+    setIsRefreshing(false);
+  }, [users]);
+
+  const { inputs, handleChange, clearForm } = useForm({
     LOGIN: "",
     AVATAR_URL: "",
-  });
-  const handleInputChange = (event) => {
-    setData({
-      ...data,
-      [event.target.name]: event.target.value,
-    });
-  };
+  })
   async function sendData(event) {
     event.preventDefault();
     try {
       const result = await client.mutate({
         mutation: gql`
         mutation CreateUser {
-          createUser(LOGIN: "${data.LOGIN}", AVATAR_URL: "${data.AVATAR_URL}") {
+          createUser(LOGIN: "${inputs.LOGIN}", AVATAR_URL: "${inputs.AVATAR_URL}") {
               ID
               LOGIN
               AVATAR_URL
@@ -38,7 +41,9 @@ export default function Home(props) {
         `,
       });
       console.log(result);
-      refreshData();
+    
+      refreshData();  
+      clearForm()
     } catch (error) {
       console.log(error.message);
     }
@@ -53,7 +58,7 @@ export default function Home(props) {
         `,
       });
       console.log(result);
-      refreshData();
+      refreshData()
     } catch (error) {
       console.log(error.message);
     }
@@ -73,7 +78,7 @@ export default function Home(props) {
                  Fetching data for server-side generated pages is done using the getServerSideProps method provided by Next.js. This function will be used during each page request to get any data passed into the page component as props.
         </p>
    
-        <div className={styles.card}>
+       
 
       <form onSubmit={sendData} className={classes.form}>
       <div className={classes.title}>New user</div>
@@ -84,7 +89,8 @@ export default function Home(props) {
           placeholder="Name"
             type={"text"}
             name="LOGIN"
-            onChange={handleInputChange}
+            value={inputs.LOGIN}
+            onChange={handleChange}
           ></input>
         </div>
 
@@ -95,16 +101,16 @@ export default function Home(props) {
             placeholder="Avatar"
             type={"text"}
             name="AVATAR_URL"
-            onChange={handleInputChange}
+            value={inputs.AVATAR_URL}
+            onChange={handleChange}
           ></input>
         </div>
         <br></br>
         <button className={classes.submit} type="submit">create user</button>
       </form>
-      </div>
       <h2>Users</h2>
       <div className={styles.grid}>
-        {props.users.map((el) => {
+        {users.map((el) => {
           return (
             <div key={el.ID}  className={styles.card}>
               <h3><Link href={`/user/${el.ID}`}>
